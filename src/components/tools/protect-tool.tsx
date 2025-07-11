@@ -12,11 +12,11 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/components/ui/use-toast";
 import { FileWithPreview } from "@/types/api";
 import { apiClient } from "@/lib/api/apiClient";
 import { Loader2, Download, Eye, EyeOff } from "lucide-react";
 import { SingleFileUpload } from "@/components/tools/shared/file-upload";
+import { toast } from "sonner";
 
 export default function ProtectTool() {
   const [file, setFile] = useState<FileWithPreview | null>(null);
@@ -29,8 +29,6 @@ export default function ProtectTool() {
     fileUrl: string;
     fileSize: number;
   } | null>(null);
-
-  const { toast } = useToast();
 
   const resetForm = () => {
     if (file?.preview) {
@@ -46,29 +44,31 @@ export default function ProtectTool() {
     e.preventDefault();
 
     if (!file) {
-      toast({
-        variant: "destructive",
-        title: "No file selected",
-        description: "Please upload a PDF file.",
-      });
+      toast.error("No file selected. Please upload a PDF file.");
       return;
     }
 
     if (!password) {
-      toast({
-        variant: "destructive",
-        title: "Password required",
-        description: "Please enter a password to protect the PDF.",
-      });
+      toast.error("Password required. Please enter a password to protect the PDF.");
       return;
     }
 
     if (password !== confirmPassword) {
-      toast({
-        variant: "destructive",
-        title: "Passwords do not match",
-        description: "Please make sure both passwords match.",
-      });
+      toast.error("Passwords do not match. Please make sure both passwords match.");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const response = await apiClient.pdf.protect(file, password);
+      if (!response.data.success) {
+        toast.error("Passwords do not match. Please make sure both passwords match.");
+        return;
+      }
+    } catch (error) {
+      console.error("Protection error:", error);
+      toast.error("Protection failed. Please try again.");
       return;
     }
 
@@ -93,10 +93,7 @@ export default function ProtectTool() {
               fileSize: response.data.fileSize,
             });
 
-            toast({
-              title: "Success!",
-              description: "PDF successfully protected with password.",
-            });
+            toast.success("PDF successfully protected with password.");
           }
         }
       } else {
@@ -105,11 +102,7 @@ export default function ProtectTool() {
     } catch (error) {
       console.error("Protection error:", error);
 
-      toast({
-        variant: "destructive",
-        title: "Protection failed",
-        description: "There was an error protecting the PDF. Please try again.",
-      });
+      toast.error("Protection failed. Please try again.");
     } finally {
       setIsSubmitting(false);
     }

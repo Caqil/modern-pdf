@@ -12,12 +12,12 @@ import {
 } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/components/ui/use-toast";
 import { FileWithPreview } from "@/types/api";
 import { apiClient } from "@/lib/api/apiClient";
 import { Loader2, FileIcon } from "lucide-react";
 import { SingleFileUpload } from "@/components/tools/shared/file-upload";
 import { DownloadButton } from "@/components/tools/shared/download-button";
+import { toast } from "sonner";
 
 type ConversionFormat =
   | "docx"
@@ -45,7 +45,6 @@ export default function ConvertTool() {
     fileSize: number;
   } | null>(null);
 
-  const { toast } = useToast();
 
   // Format options with icons and descriptions
   const formatOptions: FormatOption[] = [
@@ -107,11 +106,7 @@ export default function ConvertTool() {
     e.preventDefault();
 
     if (!file) {
-      toast({
-        variant: "destructive",
-        title: "No file selected",
-        description: "Please upload a PDF file to convert.",
-      });
+      toast.error("No file selected");
       return;
     }
 
@@ -136,10 +131,7 @@ export default function ConvertTool() {
               fileSize: response.data.fileSize,
             });
 
-            toast({
-              title: "Success!",
-              description: `PDF successfully converted to ${targetFormat.toUpperCase()}.`,
-            });
+            toast.success(`PDF successfully converted to ${targetFormat.toUpperCase()}.`);
           }
         }
       } else {
@@ -148,11 +140,7 @@ export default function ConvertTool() {
     } catch (error) {
       console.error("Conversion error:", error);
 
-      toast({
-        variant: "destructive",
-        title: "Conversion failed",
-        description: "There was an error converting the PDF. Please try again.",
-      });
+      toast.error("Conversion failed");
     } finally {
       setIsSubmitting(false);
     }

@@ -12,11 +12,11 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/components/ui/use-toast";
 import { FileWithPreview } from "@/types/api";
 import { apiClient } from "@/lib/api/apiClient";
 import { Loader2, Download, Eye, EyeOff, LockOpen } from "lucide-react";
 import { SingleFileUpload } from "@/components/tools/shared/file-upload";
+import { toast } from "sonner";
 
 export default function UnlockTool() {
   const [file, setFile] = useState<FileWithPreview | null>(null);
@@ -28,8 +28,6 @@ export default function UnlockTool() {
     fileUrl: string;
     fileSize: number;
   } | null>(null);
-
-  const { toast } = useToast();
 
   const resetForm = () => {
     if (file?.preview) {
@@ -44,20 +42,12 @@ export default function UnlockTool() {
     e.preventDefault();
 
     if (!file) {
-      toast({
-        variant: "destructive",
-        title: "No file selected",
-        description: "Please upload a PDF file.",
-      });
+      toast.error("No file selected. Please upload a PDF file.");
       return;
     }
 
     if (!password) {
-      toast({
-        variant: "destructive",
-        title: "Password required",
-        description: "Please enter the password to unlock the PDF.",
-      });
+      toast.error("Please enter the password to unlock the PDF.");
       return;
     }
 
@@ -82,10 +72,7 @@ export default function UnlockTool() {
               fileSize: response.data.fileSize,
             });
 
-            toast({
-              title: "Success!",
-              description: "PDF successfully unlocked.",
-            });
+            toast.success("PDF successfully unlocked.");
           }
         }
       } else {
@@ -94,12 +81,9 @@ export default function UnlockTool() {
     } catch (error) {
       console.error("Unlock error:", error);
 
-      toast({
-        variant: "destructive",
-        title: "Unlock failed",
-        description:
-          "There was an error unlocking the PDF. Please check if the password is correct and try again.",
-      });
+      toast.error(
+        "There was an error unlocking the PDF. Please check if the password is correct and try again."
+      );
     } finally {
       setIsSubmitting(false);
     }

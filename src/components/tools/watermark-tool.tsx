@@ -22,7 +22,6 @@ import {
 import { Slider } from "@/components/ui/slider";
 // import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useToast } from "@/components/ui/use-toast";
 import { FileWithPreview } from "@/types/api";
 import apiClient from "@/lib/api/apiClient";
 import {
@@ -31,6 +30,7 @@ import {
   FileText,
   Image as ImageIcon,
 } from "lucide-react";
+import { toast } from "sonner";
 
 export default function WatermarkTool() {
   const [file, setFile] = useState<FileWithPreview | null>(null);
@@ -53,27 +53,18 @@ export default function WatermarkTool() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const watermarkImageRef = useRef<HTMLInputElement>(null);
-  const { toast } = useToast();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
       if (!selectedFile.type.includes("pdf")) {
-        toast({
-          variant: "destructive",
-          title: "Invalid file type",
-          description: "Please upload a PDF file.",
-        });
+        toast.error("Invalid file type. Please upload a PDF file.");
         return;
       }
 
       if (selectedFile.size > 50 * 1024 * 1024) {
         // 50MB limit
-        toast({
-          variant: "destructive",
-          title: "File too large",
-          description: "Maximum file size is 50MB.",
-        });
+        toast.error("File too large. Maximum file size is 50MB.");
         return;
       }
 
@@ -92,11 +83,9 @@ export default function WatermarkTool() {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
       if (!selectedFile.type.includes("image")) {
-        toast({
-          variant: "destructive",
-          title: "Invalid file type",
-          description: "Please upload an image file for the watermark.",
-        });
+        toast.error(
+          "Invalid file type. Please upload an image file for the watermark."
+        );
         return;
       }
 
@@ -125,38 +114,22 @@ export default function WatermarkTool() {
     e.preventDefault();
 
     if (!file) {
-      toast({
-        variant: "destructive",
-        title: "No file selected",
-        description: "Please upload a PDF file.",
-      });
+      toast.error("No file selected. Please upload a PDF file.");
       return;
     }
 
     if (watermarkType === "text" && !watermarkText) {
-      toast({
-        variant: "destructive",
-        title: "Missing text",
-        description: "Please enter text for the watermark.",
-      });
+      toast.error("Please enter text for the watermark.");
       return;
     }
 
     if (watermarkType === "image" && !watermarkImage) {
-      toast({
-        variant: "destructive",
-        title: "No watermark image",
-        description: "Please upload an image for the watermark.",
-      });
+      toast.error("Please upload an image for the watermark.");
       return;
     }
 
     if (pages === "custom" && !customPages) {
-      toast({
-        variant: "destructive",
-        title: "Missing page range",
-        description: "Please specify page ranges (e.g., 1-3,5,7-9)",
-      });
+      toast("Please specify page ranges (e.g., 1-3,5,7-9)");
       return;
     }
 
@@ -187,21 +160,13 @@ export default function WatermarkTool() {
           )
         );
 
-        toast({
-          title: "Success!",
-          description: response.data.message,
-        });
+        toast.success(response.data.message);
       } else {
         throw new Error("Watermark operation failed");
       }
     } catch (error) {
       console.error("Watermark error:", error);
-      toast({
-        variant: "destructive",
-        title: "Operation failed",
-        description:
-          "There was an error adding the watermark. Please try again.",
-      });
+      toast.error("There was an error adding the watermark. Please try again.");
     } finally {
       setIsSubmitting(false);
     }

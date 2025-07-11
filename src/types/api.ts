@@ -73,6 +73,7 @@ export interface SplitResponse extends ApiResponse {
   message: string;
   results: SplitResult[];
   billing: BillingInfo;
+  id?: string;
 }
 
 export interface SplitStatusResponse {

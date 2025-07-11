@@ -12,13 +12,13 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/components/ui/use-toast";
 import { FileWithPreview } from "@/types/api";
 import { apiClient } from "@/lib/api/apiClient";
 import { Loader2, Trash2, PenTool } from "lucide-react";
 import { SingleFileUpload } from "@/components/tools/shared/file-upload";
 import { DownloadButton } from "@/components/tools/shared/download-button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "sonner";
 
 interface SignaturePosition {
   x: number;
@@ -52,8 +52,6 @@ export default function SignTool() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasSignature, setHasSignature] = useState(false);
-
-  const { toast } = useToast();
 
   const resetForm = () => {
     if (pdfFile?.preview) {
@@ -152,11 +150,7 @@ export default function SignTool() {
       return new Promise<File>((resolve, reject) => {
         canvas.toBlob((blob) => {
           if (!blob) {
-            toast({
-              variant: "destructive",
-              title: "Error",
-              description: "Could not convert signature to image.",
-            });
+            toast.error("Could not convert signature to image.");
             reject(new Error("Failed to create blob from canvas"));
             return;
           }
@@ -175,11 +169,7 @@ export default function SignTool() {
     e.preventDefault();
 
     if (!pdfFile) {
-      toast({
-        variant: "destructive",
-        title: "No PDF file selected",
-        description: "Please upload a PDF file.",
-      });
+      toast.error("No PDF file selected. Please upload a PDF file.");
       return;
     }
 
@@ -187,21 +177,15 @@ export default function SignTool() {
 
     if (signatureMethod === "upload") {
       if (!signatureFile) {
-        toast({
-          variant: "destructive",
-          title: "No signature image selected",
-          description: "Please upload a signature image.",
-        });
+        toast.error(
+          "No signature image selected. Please upload a signature image."
+        );
         return;
       }
       signature = signatureFile;
     } else {
       if (!hasSignature) {
-        toast({
-          variant: "destructive",
-          title: "No signature drawn",
-          description: "Please draw your signature.",
-        });
+        toast.error("No signature drawn. Please draw your signature.");
         return;
       }
       signature = await canvasToFile();
@@ -235,10 +219,7 @@ export default function SignTool() {
               fileSize: response.data.fileSize,
             });
 
-            toast({
-              title: "Success!",
-              description: "PDF successfully signed.",
-            });
+            toast.success("PDF successfully signed.");
           }
         }
       } else {
@@ -247,11 +228,7 @@ export default function SignTool() {
     } catch (error) {
       console.error("Signature error:", error);
 
-      toast({
-        variant: "destructive",
-        title: "Signing failed",
-        description: "There was an error signing the PDF. Please try again.",
-      });
+      toast.error("There was an error signing the PDF. Please try again.");
     } finally {
       setIsSubmitting(false);
     }

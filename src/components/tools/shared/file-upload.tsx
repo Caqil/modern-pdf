@@ -4,7 +4,7 @@ import { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { FileWithPreview } from "@/types/api";
 import { UploadCloud, FileText } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 
 interface FileUploadProps {
   file: FileWithPreview | null;
@@ -24,7 +24,6 @@ export function SingleFileUpload({
   description = "PDF (max 50MB)",
 }: FileUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { toast } = useToast();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -33,21 +32,13 @@ export function SingleFileUpload({
       // Validate file type
       const fileType = accept.replace(".", "");
       if (!selectedFile.type.includes(fileType)) {
-        toast({
-          variant: "destructive",
-          title: "Invalid file type",
-          description: `Please upload a ${fileType.toUpperCase()} file.`,
-        });
+        toast.error(`Please upload a ${fileType.toUpperCase()} file.`);
         return;
       }
 
       // Validate file size
       if (selectedFile.size > maxSize * 1024 * 1024) {
-        toast({
-          variant: "destructive",
-          title: "File too large",
-          description: `Maximum file size is ${maxSize}MB.`,
-        });
+        toast.error(`Maximum file size is ${maxSize}MB.`);
         return;
       }
 
@@ -124,17 +115,11 @@ export function MultiFileUpload({
   description = "PDF files (max 50MB each)",
 }: MultiFileUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { toast } = useToast();
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       // Check if adding these files would exceed the max files limit
       if (files.length + e.target.files.length > maxFiles) {
-        toast({
-          variant: "destructive",
-          title: "Too many files",
-          description: `You can upload a maximum of ${maxFiles} files.`,
-        });
+        toast(`You can upload a maximum of ${maxFiles} files.`);
         return;
       }
 
@@ -146,11 +131,7 @@ export function MultiFileUpload({
         (file) => !file.type.includes(fileType)
       );
       if (invalidFiles.length > 0) {
-        toast({
-          variant: "destructive",
-          title: "Invalid file type",
-          description: `Please upload only ${fileType.toUpperCase()} files.`,
-        });
+        toast.error(`Please upload only ${fileType.toUpperCase()} files.`);
         return;
       }
 
@@ -159,11 +140,7 @@ export function MultiFileUpload({
         (file) => file.size > maxSize * 1024 * 1024
       );
       if (oversizedFiles.length > 0) {
-        toast({
-          variant: "destructive",
-          title: "File too large",
-          description: `Maximum file size is ${maxSize}MB per file.`,
-        });
+        toast.error(`Maximum file size is ${maxSize}MB per file.`);
         return;
       }
 

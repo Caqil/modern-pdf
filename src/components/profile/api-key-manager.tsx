@@ -21,10 +21,10 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/components/ui/use-toast";
 import { ApiKey } from "@/types/api";
 import apiClient from "@/lib/api/apiClient";
 import { Loader2, Key, CheckCircle, Copy, AlertTriangle } from "lucide-react";
+import { toast } from "sonner";
 
 export default function ApiKeyManager() {
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
@@ -42,8 +42,6 @@ export default function ApiKeyManager() {
   const setKeyToRevoke = useState<string | null>(null)[1];
   const [isRevoking, setIsRevoking] = useState(false);
 
-  const { toast } = useToast();
-
   useEffect(() => {
     fetchApiKeys();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -56,12 +54,9 @@ export default function ApiKeyManager() {
       setApiKeys(response.data.keys || []);
     } catch (error) {
       console.error("Error fetching API keys:", error);
-      toast({
-        variant: "destructive",
-        title: "Failed to load API keys",
-        description:
-          "There was an error retrieving your API keys. Please try again.",
-      });
+      toast.error(
+        "There was an error retrieving your API keys. Please try again."
+      );
     } finally {
       setIsLoading(false);
     }
@@ -69,11 +64,7 @@ export default function ApiKeyManager() {
 
   const handleCreateKey = async () => {
     if (!newKeyName.trim()) {
-      toast({
-        variant: "destructive",
-        title: "Invalid key name",
-        description: "Please enter a name for your API key.",
-      });
+      toast.error("Please enter a name for your API key.");
       return;
     }
 
@@ -84,18 +75,12 @@ export default function ApiKeyManager() {
       setNewKeyName("");
       fetchApiKeys(); // Refresh the key list
 
-      toast({
-        title: "API key created",
-        description: "Your new API key has been created successfully.",
-      });
+      toast.success("Your new API key has been created successfully.");
     } catch (error) {
       console.error("Error creating API key:", error);
-      toast({
-        variant: "destructive",
-        title: "Failed to create API key",
-        description:
-          "There was an error creating your API key. Please try again.",
-      });
+      toast.error(
+        "There was an error creating your API key. Please try again."
+      );
     } finally {
       setIsCreating(false);
     }
@@ -108,18 +93,10 @@ export default function ApiKeyManager() {
       setApiKeys(apiKeys.filter((key) => key.id !== keyId));
       setKeyToRevoke(null);
 
-      toast({
-        title: "API key revoked",
-        description: "The API key has been revoked successfully.",
-      });
+      toast.success("The API key has been revoked successfully.");
     } catch (error) {
       console.error("Error revoking API key:", error);
-      toast({
-        variant: "destructive",
-        title: "Failed to revoke API key",
-        description:
-          "There was an error revoking the API key. Please try again.",
-      });
+      toast.error("There was an error revoking the API key. Please try again.");
     } finally {
       setIsRevoking(false);
     }

@@ -18,7 +18,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useToast } from "@/components/ui/use-toast";
 import { FileWithPreview } from "@/types/api";
 import { apiClient } from "@/lib/api/apiClient";
 import { Loader2 } from "lucide-react";
@@ -26,6 +25,7 @@ import { SingleFileUpload } from "@/components/tools/shared/file-upload";
 import { DownloadButton } from "@/components/tools/shared/download-button";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "sonner";
 
 // Language options for OCR
 interface LanguageOption {
@@ -47,7 +47,6 @@ export default function OcrTool() {
     extractedText?: string;
   } | null>(null);
 
-  const { toast } = useToast();
 
   // List of supported languages
   const languageOptions: LanguageOption[] = [
@@ -80,11 +79,7 @@ export default function OcrTool() {
     e.preventDefault();
 
     if (!file) {
-      toast({
-        variant: "destructive",
-        title: "No file selected",
-        description: "Please upload a PDF file for OCR processing.",
-      });
+      toast.error("No file selected. Please upload a PDF file for OCR processing.");
       return;
     }
 
@@ -115,13 +110,13 @@ export default function OcrTool() {
               extractedText: response.data.extractedText,
             });
 
-            toast({
-              title: "Success!",
-              description:
-                activeTab === "recognize"
-                  ? "OCR processing completed successfully."
-                  : "Text extraction completed successfully.",
-            });
+            toast.success(
+              activeTab === "recognize"
+                ? "OCR processing completed successfully."
+                : "Text extraction completed successfully."
+            );
+          } else {
+            toast.error("OCR processing failed. There was an error processing the PDF. Please try again.");
           }
         }
       } else {
@@ -130,11 +125,7 @@ export default function OcrTool() {
     } catch (error) {
       console.error("OCR error:", error);
 
-      toast({
-        variant: "destructive",
-        title: "OCR processing failed",
-        description: "There was an error processing the PDF. Please try again.",
-      });
+      toast.error("OCR processing failed. There was an error processing the PDF. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -274,10 +265,7 @@ export default function OcrTool() {
                     size="sm"
                     onClick={() => {
                       navigator.clipboard.writeText(result.extractedText || "");
-                      toast({
-                        title: "Copied!",
-                        description: "Text copied to clipboard.",
-                      });
+                      toast.success("Text copied to clipboard.");
                     }}
                   >
                     Copy Text

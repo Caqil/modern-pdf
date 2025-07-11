@@ -13,10 +13,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { useToast } from "@/components/ui/use-toast";
 import { FileWithPreview } from "@/types/api";
 import apiClient from "@/lib/api/apiClient";
 import { Loader2, UploadCloud, FileText, Download } from "lucide-react";
+import { toast } from "sonner";
 
 export default function SplitTool() {
   const [file, setFile] = useState<FileWithPreview | null>(null);
@@ -36,27 +36,18 @@ export default function SplitTool() {
   );
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { toast } = useToast();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
       if (!selectedFile.type.includes("pdf")) {
-        toast({
-          variant: "destructive",
-          title: "Invalid file type",
-          description: "Please upload a PDF file.",
-        });
+        toast.error("Invalid file type. Please upload a PDF file.");
         return;
       }
 
       if (selectedFile.size > 50 * 1024 * 1024) {
         // 50MB limit
-        toast({
-          variant: "destructive",
-          title: "File too large",
-          description: "Maximum file size is 50MB.",
-        });
+        toast.error("File too large. Maximum file size is 50MB.");
         return;
       }
 
@@ -113,10 +104,7 @@ export default function SplitTool() {
         }
 
         setIsSubmitting(false);
-        toast({
-          title: "Success!",
-          description: "PDF split operation completed successfully.",
-        });
+        toast.success("PDF split operation completed successfully.");
       } else if (response.data.status === "failed") {
         throw new Error("Split operation failed");
       }
@@ -129,11 +117,7 @@ export default function SplitTool() {
       }
 
       setIsSubmitting(false);
-      toast({
-        variant: "destructive",
-        title: "Operation failed",
-        description: "There was an error checking the split status.",
-      });
+      toast.error("There was an error checking the split status.");
     }
   };
 
@@ -141,29 +125,17 @@ export default function SplitTool() {
     e.preventDefault();
 
     if (!file) {
-      toast({
-        variant: "destructive",
-        title: "No file selected",
-        description: "Please upload a PDF file.",
-      });
+      toast.error("No file selected. Please upload a PDF file.");
       return;
     }
 
     if (splitMethod === "range" && !pageRanges) {
-      toast({
-        variant: "destructive",
-        title: "Missing page ranges",
-        description: "Please specify page ranges (e.g., 1-3,4,5-7)",
-      });
+      toast.error("Please specify page ranges (e.g., 1-3,4,5-7)");
       return;
     }
 
     if (splitMethod === "every" && (!everyNPages || everyNPages < 1)) {
-      toast({
-        variant: "destructive",
-        title: "Invalid page count",
-        description: "Please specify a valid number of pages (minimum 1).",
-      });
+      toast.error("Please specify a valid number of pages (minimum 1).");
       return;
     }
 
@@ -203,24 +175,18 @@ export default function SplitTool() {
 
           setIsSubmitting(false);
 
-          toast({
-            title: "Success!",
-            description: response.data.message,
-          });
+          toast.success(response.data.message);
         }
         // If operation ID for polling
         else if (response.data.id) {
           setOperationId(response.data.id);
           const interval = setInterval(
-            () => checkSplitStatus(response.data.id),
+            () => checkSplitStatus(response.data.id as string),
             2000
           );
           setPollingInterval(interval);
 
-          toast({
-            title: "Processing",
-            description: "Your PDF is being split. This may take a moment...",
-          });
+          toast.info("Your PDF is being split. This may take a moment...");
         }
       } else {
         throw new Error("Split operation failed");
@@ -229,11 +195,7 @@ export default function SplitTool() {
       console.error("Split error:", error);
       setIsSubmitting(false);
 
-      toast({
-        variant: "destructive",
-        title: "Split failed",
-        description: "There was an error splitting the PDF. Please try again.",
-      });
+      toast.error("There was an error splitting the PDF. Please try again.");
     }
   };
 

@@ -10,7 +10,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useToast } from "@/components/ui/use-toast";
 import { FileWithPreview } from "@/types/api";
 import { apiClient } from "@/lib/api/apiClient";
 import {
@@ -23,6 +22,7 @@ import {
   MoveDown,
   Plus,
 } from "lucide-react";
+import { toast } from "sonner";
 
 export default function MergeTool() {
   const [files, setFiles] = useState<FileWithPreview[]>([]);
@@ -34,8 +34,6 @@ export default function MergeTool() {
   } | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { toast } = useToast();
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const selectedFiles = Array.from(e.target.files);
@@ -45,11 +43,7 @@ export default function MergeTool() {
         (file) => !file.type.includes("pdf")
       );
       if (invalidFiles.length > 0) {
-        toast({
-          variant: "destructive",
-          title: "Invalid file type",
-          description: "Please upload only PDF files.",
-        });
+        toast.error("Invalid file type");
         return;
       }
 
@@ -58,11 +52,7 @@ export default function MergeTool() {
         (file) => file.size > 50 * 1024 * 1024
       ); // 50MB limit
       if (oversizedFiles.length > 0) {
-        toast({
-          variant: "destructive",
-          title: "File too large",
-          description: "Maximum file size is 50MB per file.",
-        });
+        toast.error("File too large");
         return;
       }
 
@@ -130,11 +120,7 @@ export default function MergeTool() {
     e.preventDefault();
 
     if (files.length < 2) {
-      toast({
-        variant: "destructive",
-        title: "Not enough files",
-        description: "Please upload at least 2 PDF files to merge.",
-      });
+      toast.error("Not enough files. Please upload at least 2 PDF files to merge.");
       return;
     }
 
@@ -159,10 +145,7 @@ export default function MergeTool() {
               fileSize: response.data.fileSize,
             });
 
-            toast({
-              title: "Success!",
-              description: `${files.length} PDF files merged successfully.`,
-            });
+            toast.success(`${files.length} PDF files merged successfully.`);
           }
         }
       } else {
@@ -171,12 +154,7 @@ export default function MergeTool() {
     } catch (error) {
       console.error("Merge error:", error);
 
-      toast({
-        variant: "destructive",
-        title: "Merge failed",
-        description:
-          "There was an error merging the PDF files. Please try again.",
-      });
+      toast.error("Merge failed. There was an error merging the PDF files. Please try again.");
     } finally {
       setIsSubmitting(false);
     }

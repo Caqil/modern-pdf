@@ -12,10 +12,10 @@ import {
 } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/components/ui/use-toast";
 import { FileWithPreview } from "@/types/api";
 import apiClient from "@/lib/api/apiClient";
 import { Loader2, UploadCloud, FileText, Download } from "lucide-react";
+import { toast } from "sonner";
 
 export default function CompressTool() {
   const [file, setFile] = useState<FileWithPreview | null>(null);
@@ -29,7 +29,6 @@ export default function CompressTool() {
   } | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { toast } = useToast();
 
   const formatFileSize = (bytes: number): string => {
     if (bytes < 1024) return bytes + " bytes";
@@ -41,21 +40,14 @@ export default function CompressTool() {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
       if (!selectedFile.type.includes("pdf")) {
-        toast({
-          variant: "destructive",
-          title: "Invalid file type",
-          description: "Please upload a PDF file.",
-        });
+        toast.error("Invalid file type");
         return;
       }
 
       if (selectedFile.size > 50 * 1024 * 1024) {
         // 50MB limit
-        toast({
-          variant: "destructive",
-          title: "File too large",
-          description: "Maximum file size is 50MB.",
-        });
+        toast.error("File too large");
+
         return;
       }
 
@@ -82,11 +74,7 @@ export default function CompressTool() {
     e.preventDefault();
 
     if (!file) {
-      toast({
-        variant: "destructive",
-        title: "No file selected",
-        description: "Please upload a PDF file.",
-      });
+      toast.error("No file selected");
       return;
     }
 
@@ -109,21 +97,13 @@ export default function CompressTool() {
           ratio: response.data.compressionRatio,
         });
 
-        toast({
-          title: "Success!",
-          description: response.data.message,
-        });
+        toast.success(response.data.message);
       } else {
         throw new Error("Compression operation failed");
       }
     } catch (error) {
       console.error("Compression error:", error);
-      toast({
-        variant: "destructive",
-        title: "Compression failed",
-        description:
-          "There was an error compressing the PDF. Please try again.",
-      });
+      toast.error("Compression failed");
     } finally {
       setIsSubmitting(false);
     }

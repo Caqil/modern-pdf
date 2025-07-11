@@ -13,11 +13,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { useToast } from "@/components/ui/use-toast";
 import { FileWithPreview } from "@/types/api";
 import { apiClient } from "@/lib/api/apiClient";
 import { Loader2, Download } from "lucide-react";
 import { SingleFileUpload } from "@/components/tools/shared/file-upload";
+import { toast } from "sonner";
 
 type RotationAngle = 90 | 180 | 270;
 
@@ -32,8 +32,6 @@ export default function RotateTool() {
     fileUrl: string;
     fileSize: number;
   } | null>(null);
-
-  const { toast } = useToast();
 
   const resetForm = () => {
     if (file?.preview) {
@@ -50,22 +48,18 @@ export default function RotateTool() {
     e.preventDefault();
 
     if (!file) {
-      toast({
-        variant: "destructive",
-        title: "No file selected",
-        description: "Please upload a PDF file.",
-      });
+      toast.error("No file selected. Please upload a PDF file.");
       return;
     }
 
     if (pages === "custom" && !customPages) {
-      toast({
-        variant: "destructive",
-        title: "Missing page numbers",
-        description: "Please specify page numbers for rotation.",
-      });
+      toast.error(
+        "Missing page numbers. Please specify page numbers for rotation."
+      );
       return;
     }
+
+    setIsSubmitting(true);
 
     setIsSubmitting(true);
 
@@ -100,10 +94,7 @@ export default function RotateTool() {
               fileSize: response.data.fileSize,
             });
 
-            toast({
-              title: "Success!",
-              description: "PDF pages rotated successfully.",
-            });
+            toast.success("PDF pages rotated successfully.");
           }
         }
       } else {
@@ -112,11 +103,7 @@ export default function RotateTool() {
     } catch (error) {
       console.error("Rotation error:", error);
 
-      toast({
-        variant: "destructive",
-        title: "Rotation failed",
-        description: "There was an error rotating the PDF. Please try again.",
-      });
+      toast.error("There was an error rotating the PDF. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
