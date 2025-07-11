@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import ThemeSwitcher from "@/components/common/theme-switcher";
 import { apiClient } from "@/lib/api/apiClient";
 import { Toaster } from "sonner";
-
+import { User } from "@/types/api";
 export default function AuthLayout({
   children,
 }: {
@@ -17,29 +17,46 @@ export default function AuthLayout({
   useEffect(() => {
     checkAuthStatus();
   }, []);
+  useEffect(() => {
+    checkAuthStatus();
+  }, []);
+
+  const clearAuthData = () => {
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("apiKey");
+    localStorage.removeItem("user");
+  };
 
   const checkAuthStatus = async () => {
     try {
       const token = localStorage.getItem("authToken");
 
-      if (token) {
-        // Try to validate the token
-        try {
-          await apiClient.auth.validateToken();
-          // Token is valid, redirect to dashboard
+      // If no token, skip validation and go straight to auth page
+      if (!token) {
+        setIsChecking(false);
+        return;
+      }
+
+      // Only validate if we have a token
+      try {
+        const response = await apiClient.auth.validateToken();
+
+        // Only redirect if token is actually valid
+        if (response.data?.valid === true) {
           router.push("/dashboard");
           return;
-        } catch (error) {
-          // Token is invalid, clear it and continue to auth page
-          localStorage.removeItem("authToken");
-          localStorage.removeItem("apiKey");
+        } else {
+          // Token exists but is invalid
+          clearAuthData();
         }
+      } catch (error: any) {
+        // Token validation failed, clear it
+        console.error("Token validation failed:", error);
+        clearAuthData();
       }
     } catch (error) {
       console.error("Auth check failed:", error);
-      // Clear any invalid tokens
-      localStorage.removeItem("authToken");
-      localStorage.removeItem("apiKey");
+      clearAuthData();
     } finally {
       setIsChecking(false);
     }

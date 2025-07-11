@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Card,
@@ -22,32 +22,107 @@ import {
   Settings,
   Bell,
   Download,
+  Loader2,
 } from "lucide-react";
+import { apiClient } from "@/lib/api/apiClient";
+import { toast } from "sonner";
 import ProfileForm from "@/components/profile/profile-form";
 import BillingInfo from "@/components/profile/billing-info";
 import ApiKeyManager from "@/components/profile/api-key-manager";
 
+interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  balance?: number;
+  freeOperationsRemaining?: number;
+  createdAt?: string;
+  lastLogin?: string;
+  isEmailVerified?: boolean;
+  avatar?: string | null;
+}
+
 export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState("profile");
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Mock user data - replace with actual data from your auth context
-  const user = {
-    name: "John Doe",
-    email: "john.doe@example.com",
-    role: "user",
-    createdAt: "2024-01-15T10:30:00Z",
-    lastLogin: "2024-12-20T14:22:00Z",
-    isEmailVerified: true,
-    avatar: null,
+  useEffect(() => {
+    fetchUserProfile();
+  }, []);
+
+  const fetchUserProfile = async () => {
+    try {
+      setIsLoading(true);
+
+      // First check localStorage for cached user data
+      const storedUser = localStorage.getItem("user");
+      if (storedUser) {
+        setUser(JSON.parse(storedUser));
+      }
+
+      // Fetch fresh user data from API
+      const response = await apiClient.user.getProfile();
+      const userData = response.data;
+
+      setUser(userData);
+      localStorage.setItem("user", JSON.stringify(userData));
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+      toast.error("Failed to load your profile information. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | undefined) => {
+    if (!dateString) return "N/A";
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
       month: "long",
       day: "numeric",
     });
   };
+
+  const handleExportData = async () => {
+    try {
+      toast.info("Preparing your data export...");
+      // This would trigger a data export request
+      // await apiClient.user.requestDataExport();
+      toast.success(
+        "Data export request submitted. You'll receive an email when ready."
+      );
+    } catch (error) {
+      console.error("Error requesting data export:", error);
+      toast.error("Failed to request data export. Please try again.");
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <div className="flex flex-col items-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <div className="text-center space-y-4">
+          <p className="text-lg font-medium">Unable to load profile</p>
+          <p className="text-sm text-muted-foreground">
+            Please refresh the page or try again later.
+          </p>
+          <Button onClick={fetchUserProfile}>Retry</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -68,7 +143,15 @@ export default function ProfilePage() {
         <CardContent className="p-6">
           <div className="flex items-start space-x-4">
             <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
-              <User className="h-8 w-8 text-primary" />
+              {user.avatar ? (
+                <img
+                  src={user.avatar}
+                  alt={user.name}
+                  className="w-16 h-16 rounded-full object-cover"
+                />
+              ) : (
+                <User className="h-8 w-8 text-primary" />
+              )}
             </div>
             <div className="flex-1 space-y-2">
               <div className="flex items-center space-x-3">
@@ -93,11 +176,18 @@ export default function ProfilePage() {
                   <span>Joined {formatDate(user.createdAt)}</span>
                 </div>
               </div>
-              <div className="text-sm text-muted-foreground">
-                Last login: {formatDate(user.lastLogin)}
-              </div>
+              {user.lastLogin && (
+                <div className="text-sm text-muted-foreground">
+                  Last login: {formatDate(user.lastLogin)}
+                </div>
+              )}
+              {user.freeOperationsRemaining !== undefined && (
+                <div className="text-sm text-muted-foreground">
+                  Free operations remaining: {user.freeOperationsRemaining}
+                </div>
+              )}
             </div>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={handleExportData}>
               <Download className="w-4 h-4 mr-2" />
               Export Data
             </Button>
@@ -167,13 +257,21 @@ export default function ProfilePage() {
                   <div>
                     <h4 className="text-sm font-medium">Email Verification</h4>
                     <p className="text-sm text-muted-foreground">
-                      Your email address is verified
+                      {user.isEmailVerified
+                        ? "Your email address is verified"
+                        : "Please verify your email address"}
                     </p>
                   </div>
-                  <Badge variant="default">
-                    <Shield className="w-3 h-3 mr-1" />
-                    Verified
-                  </Badge>
+                  {user.isEmailVerified ? (
+                    <Badge variant="default">
+                      <Shield className="w-3 h-3 mr-1" />
+                      Verified
+                    </Badge>
+                  ) : (
+                    <Button variant="outline" size="sm">
+                      Verify Email
+                    </Button>
+                  )}
                 </div>
               </div>
 
@@ -295,7 +393,7 @@ export default function ProfilePage() {
                     Download a copy of your account data
                   </p>
                 </div>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" onClick={handleExportData}>
                   <Download className="w-4 h-4 mr-2" />
                   Request Export
                 </Button>

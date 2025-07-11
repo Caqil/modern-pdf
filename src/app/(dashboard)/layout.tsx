@@ -8,7 +8,11 @@ import { apiClient } from "@/lib/api/apiClient";
 import { toast, Toaster } from "sonner";
 import AppSidebar from "@/components/layout/sidebar";
 import Header from "@/components/layout/header";
-
+const clearAuthData = () => {
+  localStorage.removeItem("authToken");
+  localStorage.removeItem("apiKey");
+  localStorage.removeItem("user"); // This was missing!
+};
 export default function DashboardLayout({
   children,
 }: {
@@ -17,39 +21,52 @@ export default function DashboardLayout({
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-
   useEffect(() => {
     validateAuthentication();
   }, []);
+
+  const clearAuthData = () => {
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("apiKey");
+    localStorage.removeItem("user");
+  };
 
   const validateAuthentication = async () => {
     try {
       const token = localStorage.getItem("authToken");
 
       if (!token) {
+        clearAuthData();
         router.push("/login");
         return;
       }
 
-      // Validate token with backend
       try {
-        await apiClient.auth.validateToken();
-        setIsAuthenticated(true);
+        const response = await apiClient.auth.validateToken();
+
+        // Check if response indicates valid token
+        if (response.data?.valid === true) {
+          setIsAuthenticated(true);
+        } else {
+          throw new Error("Token validation failed");
+        }
       } catch (error: any) {
-        // Token is invalid or expired
         console.error("Token validation failed:", error);
 
-        // Clear invalid token
-        localStorage.removeItem("authToken");
-        localStorage.removeItem("apiKey");
+        // Clear all auth data
+        clearAuthData();
 
-        toast("Please log in again to continue.");
+        // Show toast only if it's not a 401 (handled by interceptor)
+        if (error.response?.status !== 401) {
+          toast("Please log in again to continue.");
+        }
 
         router.push("/login");
         return;
       }
     } catch (error) {
       console.error("Authentication check failed:", error);
+      clearAuthData();
       router.push("/login");
     } finally {
       setIsLoading(false);

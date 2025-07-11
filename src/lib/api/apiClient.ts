@@ -23,7 +23,7 @@ import {
 } from '@/types/api';
 
 // Base API configuration
-const BASE_URL = 'http://localhost:8080';
+const BASE_URL = 'https://api.mega-pdf.com';
 
 // Create axios instance
 const apiInstance = axios.create({
@@ -32,8 +32,6 @@ const apiInstance = axios.create({
     'Content-Type': 'application/json',
   },
 });
-
-// Request interceptor to add auth tokens
 apiInstance.interceptors.request.use((config) => {
   const token = localStorage.getItem('authToken');
   const apiKey = localStorage.getItem('apiKey');
@@ -48,6 +46,40 @@ apiInstance.interceptors.request.use((config) => {
   
   return config;
 });
+
+// Response interceptor to handle 401 errors globally
+apiInstance.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    // Handle 401 errors globally
+    if (error.response?.status === 401) {
+      // Clear all auth data
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('apiKey');
+      localStorage.removeItem('user');
+      
+      // Only redirect if we're on protected pages (dashboard, profile, etc.)
+      const currentPath = window.location.pathname;
+      const protectedPaths = ['/dashboard', '/profile', '/tools', '/settings', '/api-keys'];
+      const isProtectedPath = protectedPaths.some(path => currentPath.startsWith(path));
+      
+      // Don't redirect from public pages (home, login, register, pricing, etc.)
+      if (isProtectedPath && !currentPath.includes('/login') && !currentPath.includes('/register')) {
+        // Import toast here to avoid circular dependencies
+        import('sonner').then(({ toast }) => {
+          toast.error('Session expired. Please log in again.');
+        });
+        
+        // Small delay to allow toast to show before redirect
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 100);
+      }
+    }
+    
+    return Promise.reject(error);
+  }
+);
 
 // Define API client with all API endpoints
 export const apiClient = {

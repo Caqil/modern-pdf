@@ -1,3 +1,4 @@
+// src/components/layout/header.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -15,8 +16,6 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import ThemeSwitcher from "@/components/common/theme-switcher";
-import MobileNav from "./mobile-nav";
-import { notification } from "@/components/common/notification";
 import { apiClient } from "@/lib/api/apiClient";
 import {
   FileText,
@@ -28,6 +27,8 @@ import {
   Menu,
   Coins,
 } from "lucide-react";
+import { toast } from "sonner";
+import MobileNav from "./mobile-nav";
 
 interface User {
   id: string;
@@ -47,44 +48,82 @@ const navigationItems = [
 
 export default function Header() {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false); // Start as false
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
     checkAuthStatus();
-  }, []);
+  }, [pathname]);
+
+  const clearAuthData = () => {
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("apiKey");
+    localStorage.removeItem("user");
+  };
 
   const checkAuthStatus = async () => {
     try {
-      // First check localStorage for user data
+      // First, load user from localStorage if available
       const storedUser = localStorage.getItem("user");
       if (storedUser) {
-        setUser(JSON.parse(storedUser));
+        try {
+          setUser(JSON.parse(storedUser));
+        } catch (error) {
+          console.error("Error parsing stored user:", error);
+          localStorage.removeItem("user");
+        }
       }
 
-      // Then validate with server
-      const response = await apiClient.auth.validateToken();
-      if (response.data.valid) {
-        // Fetch fresh user data
-        const userResponse = await apiClient.user.getProfile();
-        const userData = userResponse.data;
-        setUser(userData);
-        localStorage.setItem("user", JSON.stringify(userData));
-      } else {
-        // Token is invalid
-        handleLogout();
+      // Only validate token on protected pages
+      const protectedPaths = [
+        "/dashboard",
+        "/profile",
+        "/tools",
+        "/settings",
+        "/api-keys",
+      ];
+      const isProtectedPage = protectedPaths.some((path) =>
+        pathname.startsWith(path)
+      );
+
+      if (!isProtectedPage) {
+        // On public pages, we're done - just show what we have in localStorage
+        setIsLoading(false);
+        return;
       }
-    } catch (error) {
+
+      // On protected pages, validate with server
+      const token = localStorage.getItem("authToken");
+      if (!token) {
+        setUser(null);
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        const response = await apiClient.auth.validateToken();
+
+        if (response.data?.valid === true) {
+          // Fetch fresh user data
+          const userResponse = await apiClient.user.getProfile();
+          const userData = userResponse.data;
+          setUser(userData);
+          localStorage.setItem("user", JSON.stringify(userData));
+        } else {
+          throw new Error("Token validation failed");
+        }
+      } catch (error: any) {
+        console.error("Auth validation failed:", error);
+        setUser(null);
+        clearAuthData();
+      }
+    } catch (error: any) {
       console.error("Auth check failed:", error);
-      // Only logout if we're on a protected route
-      if (
-        pathname?.startsWith("/dashboard") ||
-        pathname?.startsWith("/profile")
-      ) {
-        handleLogout();
-      }
+      setUser(null);
+      clearAuthData();
     } finally {
       setIsLoading(false);
     }
@@ -96,12 +135,9 @@ export default function Header() {
     } catch (error) {
       console.error("Logout error:", error);
     } finally {
-      // Clear local storage regardless of API call success
-      localStorage.removeItem("user");
-      localStorage.removeItem("authToken");
+      clearAuthData();
       setUser(null);
-
-      notification.success("Logged out successfully");
+      toast.success("Logged out successfully");
       router.push("/");
     }
   };
@@ -123,6 +159,7 @@ export default function Header() {
     }).format(balance);
   };
 
+  // Check if we're on auth pages
   const isAuthPage =
     pathname === "/login" ||
     pathname === "/register" ||
@@ -159,9 +196,11 @@ export default function Header() {
           <div className="flex items-center space-x-4">
             <ThemeSwitcher />
 
+            {/* Auth Section */}
             {isLoading ? (
               <div className="h-8 w-8 rounded-full bg-muted animate-pulse" />
             ) : user ? (
+              // Logged in user dropdown
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -169,8 +208,8 @@ export default function Header() {
                     className="relative h-8 w-8 rounded-full"
                   >
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src="" alt={user.name} />
-                      <AvatarFallback>
+                      <AvatarImage src="/avatars/default.png" alt={user.name} />
+                      <AvatarFallback className="text-xs">
                         {getUserInitials(user.name)}
                       </AvatarFallback>
                     </Avatar>
@@ -185,50 +224,42 @@ export default function Header() {
                       <p className="text-xs leading-none text-muted-foreground">
                         {user.email}
                       </p>
-                      {user.balance !== undefined && (
-                        <div className="flex items-center justify-between pt-2">
-                          <span className="text-xs text-muted-foreground">
-                            Balance:
-                          </span>
+                      <div className="flex items-center space-x-2 pt-2">
+                        {user.balance !== undefined && (
                           <Badge variant="secondary" className="text-xs">
-                            <Coins className="h-3 w-3 mr-1" />
+                            <Coins className="mr-1 h-3 w-3" />
                             {formatBalance(user.balance)}
                           </Badge>
-                        </div>
-                      )}
-                      {user.freeOperationsRemaining !== undefined && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-muted-foreground">
-                            Free operations:
-                          </span>
+                        )}
+                        {user.freeOperationsRemaining !== undefined && (
                           <Badge variant="outline" className="text-xs">
-                            {user.freeOperationsRemaining} left
+                            {user.freeOperationsRemaining} free left
                           </Badge>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link href="/dashboard" className="cursor-pointer">
+                  <DropdownMenuItem asChild className="cursor-pointer">
+                    <Link href="/profile">
                       <User className="mr-2 h-4 w-4" />
-                      Dashboard
+                      Profile
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/profile" className="cursor-pointer">
-                      <Settings className="mr-2 h-4 w-4" />
-                      Profile Settings
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/api-keys" className="cursor-pointer">
+                  <DropdownMenuItem asChild className="cursor-pointer">
+                    <Link href="/profile/api-keys">
                       <Key className="mr-2 h-4 w-4" />
                       API Keys
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/billing" className="cursor-pointer">
+                  <DropdownMenuItem asChild className="cursor-pointer">
+                    <Link href="/settings">
+                      <Settings className="mr-2 h-4 w-4" />
+                      Settings
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild className="cursor-pointer">
+                    <Link href="/billing">
                       <CreditCard className="mr-2 h-4 w-4" />
                       Billing
                     </Link>
@@ -244,6 +275,7 @@ export default function Header() {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
+              // Not logged in - show login/register buttons (but not on auth pages)
               !isAuthPage && (
                 <div className="hidden md:flex items-center space-x-2">
                   <Button variant="ghost" asChild>
